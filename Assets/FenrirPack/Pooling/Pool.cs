@@ -1,18 +1,21 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace FenrirPack.Pooling
 {
 	public class Pool
 	{
 		#region Static Implementation
-		const string poolsRootName = "PoolsParent";
+		const string poolsRootName = "PoolsScene";
 
 
 		private static Dictionary<PooledObject, Pool> allPools;
 
-		private static GameObject poolsRootObject;
+		private static Scene poolsRootScene;
+
+		private static bool isInitialized;
 
 		/// <summary>
 		/// Initializes pooling system. Called automatically the first time a pool is created.
@@ -20,7 +23,9 @@ namespace FenrirPack.Pooling
 		private static void Initialize()
 		{
 			allPools = new Dictionary<PooledObject, Pool>();
-			poolsRootObject = new GameObject(poolsRootName);
+			poolsRootScene = SceneManager.CreateScene(poolsRootName);
+
+			isInitialized = true;
 		}
 
 		/// <summary>
@@ -32,7 +37,7 @@ namespace FenrirPack.Pooling
 		/// <returns>Pooling system for this specific prefab.</returns>
 		public static Pool CreatePool(PooledObject prefab, int size = 1, int increaseStep = 0)
 		{
-			if (poolsRootObject == null)
+			if (!isInitialized)
 			{
 				Initialize();
 			}
@@ -42,7 +47,6 @@ namespace FenrirPack.Pooling
 			allPools.Add(prefab, newPool);
 
 			return newPool;
-
 		}
 
 		/// <summary>
@@ -108,7 +112,8 @@ namespace FenrirPack.Pooling
 			currentPoolSize = 0;
 
 			poolParent = new GameObject(prefab.name);
-			poolParent.transform.SetParent(poolsRootObject.transform);
+			SceneManager.MoveGameObjectToScene(poolParent, poolsRootScene);
+			poolParent.SetActive(false);
 			CreateItems(startSize);
 		}
 
@@ -147,20 +152,28 @@ namespace FenrirPack.Pooling
 		/// </summary>
 		/// <typeparam name="T">Type to return.</typeparam>
 		/// <returns>Instantiated item.</returns>
-		public T Spawn<T>()
+		public T Spawn<T>(Transform parent)
+		{
+			return Spawn(parent).GetComponent<T>();
+		}
+
+		public PooledObject Spawn(Transform parent)
 		{
 			this.IncreasePoolIfNeeded();
 
-				if (IsFullyUsed)
-					return default;
+			if (IsFullyUsed)
+				return default;
 
 
 			PooledObject obj = poolItems[pointer];
 			pointer++;
 
+			obj.transform.SetParent(parent);
+
+			obj.OnSpawn();
 			obj.gameObject.SetActive(true);
 
-			return obj.GetComponent<T>();
+			return obj;
 		}
 
 		/// <summary>
@@ -169,7 +182,9 @@ namespace FenrirPack.Pooling
 		/// <param name="obj">Object to be despawned.</param>
 		public void Despawn(PooledObject obj)
 		{
+			obj.OnDespawn();
 			obj.gameObject.SetActive(false);
+			obj.transform.SetParent(poolParent.transform);
 
 			pointer--;
 			int oldObjectIndex = obj.poolIndex;

@@ -11,6 +11,16 @@ namespace FenrirPack.Pooling
 		[HideInInspector]
 		public Pool myPool;
 
+		public virtual void OnSpawn()
+		{
+
+		}
+
+		public virtual void OnDespawn()
+		{
+
+		}
+
 		public void Despawn()
 		{
 			myPool.Despawn(this);
