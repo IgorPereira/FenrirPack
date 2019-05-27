@@ -6,23 +6,30 @@ using FenrirPack.Pooling;
 public class PoolTest : MonoBehaviour
 {
 	[SerializeField]
-	PooledObject prefab;
+	PooledObject prefabPersistent;
+	[SerializeField]
+	PooledObject prefabScene;
 
-	Pool pool;
+	Pool persistentPool;
+	Pool scenePool;
 
-	PooledObject instance;
+	PooledObject persistentPoolObj;
+	PooledObject scenePoolObj;
 
 	private void Start()
 	{
-		pool = Pool.CreatePool(prefab, 10, 5);
+		persistentPool = Pool.Create(prefabPersistent, 10, 5, true);
+		scenePool = Pool.Create(prefabScene, 10, 5, false);
 
-		instance = pool.Spawn(this.transform);
+		persistentPoolObj = persistentPool.Spawn(this.transform);
+		scenePoolObj = scenePool.Spawn(this.transform);
 
 		Invoke("Despawn", 2);
 	}
 
 	void Despawn()
 	{
-		instance.Despawn();
+		persistentPoolObj.Despawn();
+		scenePoolObj.Despawn();
 	}
 }

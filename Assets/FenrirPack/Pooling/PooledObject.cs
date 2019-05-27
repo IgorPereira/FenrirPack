@@ -7,9 +7,9 @@ namespace FenrirPack.Pooling
 	public class PooledObject : MonoBehaviour
 	{
 		[HideInInspector]
-		public int poolIndex;
+		internal int poolIndex;
 		[HideInInspector]
-		public Pool myPool;
+		internal Pool myPool;
 
 		public virtual void OnSpawn()
 		{

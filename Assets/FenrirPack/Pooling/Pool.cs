@@ -17,9 +17,6 @@ namespace FenrirPack.Pooling
 
 		private static bool isInitialized;
 
-		/// <summary>
-		/// Initializes pooling system. Called automatically the first time a pool is created.
-		/// </summary>
 		private static void Initialize()
 		{
 			allPools = new Dictionary<PooledObject, Pool>();
@@ -28,33 +25,20 @@ namespace FenrirPack.Pooling
 			isInitialized = true;
 		}
 
-		/// <summary>
-		/// Creates a new pool, with the desired parameters.
-		/// </summary>
-		/// <param name="prefab">Prefab the pool is based on.</param>
-		/// <param name="size">Starting pool size.</param>
-		/// <param name="increaseStep">If pool reached limit, increase by this amount (if zero, will not increase and return null).</param>
-		/// <returns>Pooling system for this specific prefab.</returns>
-		public static Pool CreatePool(PooledObject prefab, int size = 1, int increaseStep = 0)
+		public static Pool Create(PooledObject prefab, int size = 1, int increaseStep = 0, bool scenePersistent = false)
 		{
 			if (!isInitialized)
 			{
 				Initialize();
 			}
 
-			Pool newPool = new Pool(prefab, size, increaseStep);
+			Pool newPool = new Pool(prefab, size, increaseStep, scenePersistent);
 
 			allPools.Add(prefab, newPool);
 
 			return newPool;
 		}
 
-		/// <summary>
-		/// Gets an existing pool.
-		/// </summary>
-		/// <param name="prefab">Prefab to look for.</param>
-		/// <param name="createIfNonExistent">If true, creates a new pooling system with size 1 and step 0.</param>
-		/// <returns></returns>
 		public static Pool GetPool(PooledObject prefab, bool createIfNonExistent = false)
 		{
 			Pool item;
@@ -64,7 +48,7 @@ namespace FenrirPack.Pooling
 			{
 				if (createIfNonExistent)
 				{
-					item = CreatePool(prefab);
+					item = Create(prefab);
 				}
 				else
 				{
@@ -78,13 +62,6 @@ namespace FenrirPack.Pooling
 
 
 		#region Instance implementation
-		bool IsFullyUsed
-		{
-			get
-			{
-				return pointer == currentPoolSize;
-			}
-		}
 
 		private GameObject poolParent;
 
@@ -95,14 +72,15 @@ namespace FenrirPack.Pooling
 		private int pointer;
 
 		private int currentPoolSize;
+		bool IsFullyUsed
+		{
+			get
+			{
+				return pointer == currentPoolSize;
+			}
+		}
 
-		/// <summary>
-		/// Constructor method. Initializes all references and creates the first items in the pool.
-		/// </summary>
-		/// <param name="prefab">Prefab to base the pool on.</param>
-		/// <param name="startSize">Start pool size.</param>
-		/// <param name="increaseStep">The amount of objects that will be created if the pool increases size.</param>
-		public Pool(PooledObject prefab, int startSize, int increaseStep)
+		public Pool(PooledObject prefab, int startSize, int increaseStep, bool scenePersistent)
 		{
 			this.prefab = prefab;
 			this.increaseStep = increaseStep;
@@ -112,16 +90,19 @@ namespace FenrirPack.Pooling
 			currentPoolSize = 0;
 
 			poolParent = new GameObject(prefab.name);
+
 			SceneManager.MoveGameObjectToScene(poolParent, poolsRootScene);
 			poolParent.SetActive(false);
-			CreateItems(startSize);
+
+			if(scenePersistent)
+			{
+				GameObject.DontDestroyOnLoad(poolParent);
+			}
+
+			CreatePoolItems(startSize);
 		}
 
-		/// <summary>
-		/// Creates a number of objects depending on the size.
-		/// </summary>
-		/// <param name="amount">Amount of items to be created.</param>
-		private void CreateItems(int amount)
+		private void CreatePoolItems(int amount)
 		{
 			for (int i = 0; i < amount; i++)
 			{
@@ -129,9 +110,6 @@ namespace FenrirPack.Pooling
 			}
 		}
 
-		/// <summary>
-		/// Creates a new item, and places it on the end of the pool array.
-		/// </summary>
 		private void CreateItem()
 		{
 			if(currentPoolSize == poolItems.Length)
@@ -147,11 +125,6 @@ namespace FenrirPack.Pooling
 			currentPoolSize++;
 		}
 
-		/// <summary>
-		/// Spawn a new item.
-		/// </summary>
-		/// <typeparam name="T">Type to return.</typeparam>
-		/// <returns>Instantiated item.</returns>
 		public T Spawn<T>(Transform parent)
 		{
 			return Spawn(parent).GetComponent<T>();
@@ -159,7 +132,7 @@ namespace FenrirPack.Pooling
 
 		public PooledObject Spawn(Transform parent)
 		{
-			this.IncreasePoolIfNeeded();
+			this.ChheckForSizeChange();
 
 			if (IsFullyUsed)
 				return default;
@@ -176,10 +149,6 @@ namespace FenrirPack.Pooling
 			return obj;
 		}
 
-		/// <summary>
-		/// Despawns object.
-		/// </summary>
-		/// <param name="obj">Object to be despawned.</param>
 		public void Despawn(PooledObject obj)
 		{
 			obj.OnDespawn();
@@ -195,17 +164,14 @@ namespace FenrirPack.Pooling
 			poolItems[pointer] = obj;
 		}
 
-		/// <summary>
-		/// Checks if pool is full, increaases its size by increaseStep.
-		/// </summary>
-		void IncreasePoolIfNeeded()
+		private void ChheckForSizeChange()
 		{
 			if (IsFullyUsed)
 			{
 				if (increaseStep > 0)
 				{
 					System.Array.Resize(ref poolItems, currentPoolSize + increaseStep);
-					this.CreateItems(increaseStep);
+					this.CreatePoolItems(increaseStep);
 				}
 				else
 				{

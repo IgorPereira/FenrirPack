@@ -214,7 +214,7 @@ GameObject:
   - component: {fileID: 556408972}
   - component: {fileID: 556408971}
   m_Layer: 0
-  m_Name: GameObject
+  m_Name: PoolTest
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -232,7 +232,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 254e717cdb77c1d46936aa22cb5ffd31, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  prefab: {fileID: -6137101637043013512, guid: 31f7624a71abd8b44beb593b1b39eda7, type: 3}
+  prefabPersistent: {fileID: -6137101637043013512, guid: 5ab56c573765c4e47bfc5323f179efc4,
+    type: 3}
+  prefabScene: {fileID: -6137101637043013512, guid: 31f7624a71abd8b44beb593b1b39eda7,
+    type: 3}
 --- !u!4 &556408972
 Transform:
   m_ObjectHideFlags: 0
